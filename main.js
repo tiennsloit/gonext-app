@@ -159,19 +159,65 @@ function emitStatus(p) {
   }
 }
 
+/**
+ * GUI-launched apps get a bare PATH. Prepend common CLI locations (nvm, homebrew,
+ * pip user bin, etc.) so commands work without opening a terminal first.
+ */
+function buildProcessEnv() {
+  const home = app.getPath("home");
+  const sep = process.platform === "win32" ? ";" : ":";
+  const extra = [
+    "/opt/homebrew/bin",
+    "/opt/homebrew/sbin",
+    "/usr/local/bin",
+    path.join(home, ".local", "bin"),
+    path.join(home, "bin"),
+    path.join(home, "Library", "Python", "3.11", "bin"),
+    path.join(home, "Library", "Python", "3.12", "bin"),
+    path.join(home, ".lmstudio", "bin"),
+    path.join(home, ".dotnet", "tools"),
+  ];
+  try {
+    const nvmRoot = path.join(home, ".nvm", "versions", "node");
+    if (fs.existsSync(nvmRoot)) {
+      for (const ver of fs.readdirSync(nvmRoot)) {
+        extra.push(path.join(nvmRoot, ver, "bin"));
+      }
+    }
+  } catch (_) {}
+  const base = process.env.PATH || "/usr/bin:/bin:/usr/sbin:/sbin";
+  const merged = [...extra, ...base.split(sep)]
+    .filter((v, i, a) => v && a.indexOf(v) === i)
+    .join(sep);
+  return {
+    ...process.env,
+    PATH: merged,
+    HOME: home,
+    // Avoid oh-my-zsh dotenv interactive prompt when there is no TTY.
+    ZSH_DOTENV_PROMPT: "never",
+  };
+}
+
+/** Run command through the user's login shell so .zshrc / .bashrc PATH applies. */
+function shellSpawnArgs(command) {
+  if (process.platform === "win32") {
+    return { shell: "cmd.exe", args: ["/c", command] };
+  }
+  const sh = process.env.SHELL || "/bin/zsh";
+  // -i loads interactive rc (.zshrc); -l loads login profile (.zprofile).
+  return { shell: sh, args: ["-ilc", command] };
+}
+
 function startProcess(p) {
   if (p.child) return { ok: false, error: "Already running" };
 
-  // Use a login shell so PATH-installed CLIs (ngrok, etc.) resolve.
-  const shell = process.platform === "win32" ? "cmd.exe" : "/bin/bash";
-  const args =
-    process.platform === "win32" ? ["/c", p.command] : ["-lc", p.command];
+  const { shell, args } = shellSpawnArgs(p.command);
 
   let child;
   try {
     child = spawn(shell, args, {
       detached: process.platform !== "win32", // own process group for clean tree-kill
-      env: process.env,
+      env: buildProcessEnv(),
       cwd: app.getPath("home"),
     });
   } catch (err) {
