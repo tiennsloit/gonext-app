@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; style-src 'self' 'unsafe-inline';"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GoTerminal</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar">
+        <div class="brand">
+          <span class="logo">▣</span>
+          <div>
+            <h1>GoTerminal</h1>
+            <p>Process tracker</p>
+          </div>
+        </div>
+
+        <button id="addBtn" class="btn btn-primary block">+ New process</button>
+
+        <div class="list" id="list"></div>
+
+        <div class="sidebar-footer">
+          <span id="counts">0 processes</span>
+        </div>
+      </aside>
+
+      <main class="detail" id="detail">
+        <div class="empty" id="emptyState">
+          <div class="empty-icon">▣</div>
+          <h2>No process selected</h2>
+          <p>Create a process and enter a command like<br /><code>ping 1.1.1.1</code>, <code>ngrok http 3000</code>, or your CLI.</p>
+          <button class="btn btn-primary" id="emptyAddBtn">+ New process</button>
+        </div>
+
+        <section class="detail-body hidden" id="detailBody">
+          <header class="detail-header">
+            <div class="detail-title">
+              <span class="dot" id="detailDot"></span>
+              <div>
+                <h2 id="detailName">Name</h2>
+                <code id="detailCommand">command</code>
+              </div>
+            </div>
+            <div class="detail-actions">
+              <button class="btn btn-success" id="startBtn">Start</button>
+              <button class="btn btn-warn" id="stopBtn">Stop</button>
+              <button class="btn" id="restartBtn">Restart</button>
+              <button class="btn" id="editBtn">Edit</button>
+              <button class="btn btn-danger" id="deleteBtn">Delete</button>
+            </div>
+          </header>
+
+          <div class="meta">
+            <span class="badge" id="statusBadge">stopped</span>
+            <span class="meta-item">PID: <b id="metaPid">—</b></span>
+            <span class="meta-item">Exit: <b id="metaExit">—</b></span>
+            <button class="btn btn-ghost btn-sm" id="clearBtn">Clear logs</button>
+            <label class="autoscroll">
+              <input type="checkbox" id="autoScroll" checked /> Auto-scroll
+            </label>
+          </div>
+
+          <pre class="logs" id="logs"></pre>
+        </section>
+      </main>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-overlay hidden" id="modal">
+      <div class="modal">
+        <h3 id="modalTitle">New process</h3>
+        <label>
+          Name <span class="muted">(optional)</span>
+          <input type="text" id="fName" placeholder="e.g. Ping gateway" />
+        </label>
+        <label>
+          Command
+          <input
+            type="text"
+            id="fCommand"
+            placeholder="e.g. ping 102.111.222.0"
+            autocomplete="off"
+            spellcheck="false"
+          />
+        </label>
+        <p class="modal-hint">
+          Runs in a login shell, so your PATH CLIs (ngrok, etc.) work.
+        </p>
+        <div class="modal-actions">
+          <button class="btn" id="cancelBtn">Cancel</button>
+          <button class="btn btn-primary" id="saveBtn">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="renderer.js"></script>
+  </body>
+</html>
