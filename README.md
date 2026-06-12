@@ -48,8 +48,41 @@ That launches the app window directly — no `.dmg` or packaging needed.
 - This is meant for local/personal use; commands run with your user's full
   permissions, so only add commands you trust.
 
-## Optional: package as an app later
+## Release (build a distributable app)
 
-If you later want a double‑clickable app or `.dmg`, add
-[`electron-builder`](https://www.electron.build/) and a `build` config — not
-required to run today.
+Packaging is handled by [`electron-builder`](https://www.electron.build/).
+
+```bash
+npm install          # installs electron-builder too
+npm run dist:mac     # build macOS .dmg + .zip
+npm run dist:linux   # build Linux .AppImage + .deb
+npm run dist         # build for the current OS
+```
+
+Output lands in the `dist/` folder, e.g.:
+
+- macOS: `dist/GoTerminal-<version>-arm64.dmg` (drag to Applications) and a `.zip`
+- Linux: `dist/GoTerminal-<version>.AppImage` (chmod +x, then double‑click) and `.deb`
+
+### Notes on each platform
+
+- **Build on the target OS.** Build the macOS app on a Mac and the Linux app on
+  Linux (or via CI). Cross‑compiling is possible but fiddly.
+- **macOS Gatekeeper:** the app is **unsigned** (no Apple Developer cert), so the
+  first time you open it macOS may say it's from an unidentified developer.
+  Right‑click the app → **Open**, or run:
+  ```bash
+  xattr -dr com.apple.quarantine "/Applications/GoTerminal.app"
+  ```
+  To remove this entirely you'd need an Apple Developer ID and notarization.
+- **App version** comes from the `version` field in `package.json` — bump it for
+  each release.
+- **App icon:** the default Electron icon is used. To customize, add an
+  `icon.icns` (mac) / `icon.png` (linux) and reference it under `build.mac.icon`
+  / `build.linux.icon`.
+
+### Publishing to GitHub Releases (optional)
+
+`electron-builder` can upload artifacts to GitHub Releases automatically. Add a
+`build.publish` block and run with a `GH_TOKEN` set — see the
+[publish docs](https://www.electron.build/configuration/publish).
