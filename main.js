@@ -1,7 +1,21 @@
 const path = require("path");
-require("dotenv").config({ path: path.join(__dirname, ".env") });
-const { app, BrowserWindow, ipcMain } = require("electron");
 const fs = require("fs");
+const { app, BrowserWindow, ipcMain } = require("electron");
+
+// Dev: project .env. Packaged app: ~/Library/Application Support/goterminal/.env
+(function loadEnv() {
+  const dotenv = require("dotenv");
+  const candidates = [
+    path.join(app.getPath("userData"), ".env"),
+    path.join(__dirname, ".env"),
+  ];
+  for (const p of candidates) {
+    if (fs.existsSync(p)) {
+      dotenv.config({ path: p });
+      return;
+    }
+  }
+})();
 const { spawn } = require("child_process");
 const mongo = require("./mongo");
 
