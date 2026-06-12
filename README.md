@@ -41,7 +41,7 @@ The app can load its process list from MongoDB. Connection settings come from a
 `.env` file (see `.env.example`):
 
 ```
-MONGODB_HOST=146.190.194.104
+MONGODB_HOST=<your-mongodb-host>
 MONGODB_PORT=27017
 MONGODB_USER=goprocessUser1
 MONGODB_PASSWORD=********
