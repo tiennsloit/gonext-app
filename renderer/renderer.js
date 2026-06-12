@@ -6,6 +6,9 @@ let selectedId = null;
 
 /* ----------------------------- elements -------------------------------- */
 const els = {
+  banner: document.getElementById("banner"),
+  bannerText: document.getElementById("bannerText"),
+  bannerClose: document.getElementById("bannerClose"),
   list: document.getElementById("list"),
   counts: document.getElementById("counts"),
   emptyState: document.getElementById("emptyState"),
@@ -178,11 +181,34 @@ async function saveModal() {
   if (selectedId) selectProcess(selectedId);
 }
 
+function showBanner(text, kind = "error") {
+  els.bannerText.textContent = text;
+  els.banner.classList.remove("hidden", "warn");
+  if (kind === "warn") els.banner.classList.add("warn");
+}
+
+function hideBanner() {
+  els.banner.classList.add("hidden");
+}
+
+function applyMongoStatus(status) {
+  if (!status) return;
+  if (status.ok) {
+    hideBanner();
+  } else {
+    showBanner(
+      `Could not connect to MongoDB: ${status.error}. You can still add and run processes locally.`,
+      "warn"
+    );
+  }
+}
+
 async function syncMongo() {
   els.syncBtn.disabled = true;
   els.syncStatus.textContent = "Syncing…";
   try {
     const res = await api.syncMongo();
+    applyMongoStatus(res);
     if (res.ok) {
       els.syncStatus.textContent = `Synced: +${res.added} new, ${res.updated} updated${
         res.started ? `, ${res.started} auto-started` : ""
@@ -193,6 +219,10 @@ async function syncMongo() {
       els.syncStatus.textContent = `Sync failed: ${res.error}`;
     }
   } catch (err) {
+    showBanner(
+      `Could not connect to MongoDB: ${err.message}. You can still add and run processes locally.`,
+      "warn"
+    );
     els.syncStatus.textContent = `Sync failed: ${err.message}`;
   } finally {
     els.syncBtn.disabled = false;
@@ -207,6 +237,7 @@ async function syncMongo() {
 els.addBtn.addEventListener("click", () => openModal("add"));
 els.emptyAddBtn.addEventListener("click", () => openModal("add"));
 els.syncBtn.addEventListener("click", syncMongo);
+els.bannerClose.addEventListener("click", hideBanner);
 els.editBtn.addEventListener("click", () => openModal("edit"));
 els.cancelBtn.addEventListener("click", closeModal);
 els.saveBtn.addEventListener("click", saveModal);
@@ -266,6 +297,10 @@ api.onRefresh(async () => {
   if (selectedId) selectProcess(selectedId);
 });
 
+api.onMongoStatus((status) => applyMongoStatus(status));
+
 /* ------------------------------- init ---------------------------------- */
 refresh();
+// Catch the launch-time sync result in case it landed before listeners attached.
+api.mongoStatus().then(applyMongoStatus).catch(() => {});
 })();

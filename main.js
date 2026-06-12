@@ -10,6 +10,23 @@ const MAX_LOG_LINES = 500;
 
 let mainWindow = null;
 
+// Result of the most recent MongoDB sync: { ok, error?, added?, updated?, total? }
+let lastMongoStatus = null;
+
+/** Send to the renderer, waiting for the page to finish loading if needed. */
+function sendWhenReady(channel, payload) {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  const wc = mainWindow.webContents;
+  if (wc.isLoading()) {
+    wc.once("did-finish-load", () => {
+      if (!mainWindow || mainWindow.isDestroyed()) return;
+      mainWindow.webContents.send(channel, payload);
+    });
+  } else {
+    wc.send(channel, payload);
+  }
+}
+
 /**
  * Runtime registry of processes.
  * Map<id, {
@@ -289,11 +306,15 @@ ipcMain.handle("mongo:sync", async () => {
   try {
     const summary = await syncFromMongo();
     const started = autoStartAll();
+    lastMongoStatus = { ok: true, ...summary };
     return { ok: true, ...summary, started, list: listClient() };
   } catch (err) {
+    lastMongoStatus = { ok: false, error: err.message };
     return { ok: false, error: err.message };
   }
 });
+
+ipcMain.handle("mongo:status", () => lastMongoStatus);
 
 ipcMain.handle("proc:list", () => listClient());
 
@@ -400,14 +421,15 @@ app.whenReady().then(() => {
       console.log(
         `MongoDB sync: +${summary.added} added, ${summary.updated} updated`
       );
+      lastMongoStatus = { ok: true, ...summary };
     } catch (err) {
       console.warn("MongoDB sync skipped:", err.message);
+      lastMongoStatus = { ok: false, error: err.message };
     } finally {
       const started = autoStartAll();
       if (started) console.log(`Auto-started ${started} process(es)`);
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send("proc:refresh");
-      }
+      sendWhenReady("proc:refresh");
+      sendWhenReady("mongo:status", lastMongoStatus);
     }
   })();
 

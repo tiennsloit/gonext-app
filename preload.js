@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld("api", {
   update: (id, name, command, autoStart) =>
     ipcRenderer.invoke("proc:update", { id, name, command, autoStart }),
   syncMongo: () => ipcRenderer.invoke("mongo:sync"),
+  mongoStatus: () => ipcRenderer.invoke("mongo:status"),
   remove: (id) => ipcRenderer.invoke("proc:remove", { id }),
   start: (id) => ipcRenderer.invoke("proc:start", { id }),
   stop: (id) => ipcRenderer.invoke("proc:stop", { id }),
@@ -28,5 +29,10 @@ contextBridge.exposeInMainWorld("api", {
     const handler = () => cb();
     ipcRenderer.on("proc:refresh", handler);
     return () => ipcRenderer.removeListener("proc:refresh", handler);
+  },
+  onMongoStatus: (cb) => {
+    const handler = (_e, payload) => cb(payload);
+    ipcRenderer.on("mongo:status", handler);
+    return () => ipcRenderer.removeListener("mongo:status", handler);
   },
 });
