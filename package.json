@@ -6,12 +6,17 @@
   "scripts": {
     "start": "env -u ELECTRON_RUN_AS_NODE electron .",
     "dev": "env -u ELECTRON_RUN_AS_NODE electron . --inspect",
+    "seed": "node scripts/seed-mongo.js",
     "dist": "electron-builder",
     "dist:mac": "electron-builder --mac",
     "dist:linux": "electron-builder --linux"
   },
   "author": "",
   "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "mongodb": "^6.8.0"
+  },
   "devDependencies": {
     "electron": "^31.0.0",
     "electron-builder": "^24.13.3"
@@ -22,6 +27,7 @@
     "files": [
       "main.js",
       "preload.js",
+      "mongo.js",
       "renderer/**/*"
     ],
     "directories": {

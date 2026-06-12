@@ -16,6 +16,8 @@ Each process runs in a login shell, so anything on your `PATH` works. Process de
 - **Start / Stop / Restart** with one click
 - **Live status** (running, stopped, finished, error) and PID / exit code
 - **Live stdout/stderr logs** per process (with auto‑scroll and clear)
+- **Load processes from MongoDB** ("Sync from MongoDB" button)
+- **Auto‑start**: processes flagged `autoStart` launch automatically on app open
 - Clean tree‑kill on stop (kills the whole process group on macOS/Linux)
 - Stops all running processes automatically when you quit
 
@@ -27,10 +29,55 @@ Each process runs in a login shell, so anything on your `PATH` works. Process de
 
 ```bash
 npm install
+cp .env.example .env   # then fill in your MongoDB password
 npm start
 ```
 
 That launches the app window directly — no `.dmg` or packaging needed.
+
+## MongoDB integration
+
+The app can load its process list from MongoDB. Connection settings come from a
+`.env` file (see `.env.example`):
+
+```
+MONGODB_HOST=146.190.194.104
+MONGODB_PORT=27017
+MONGODB_USER=goprocessUser1
+MONGODB_PASSWORD=********
+MONGODB_DB=goprocess_uat
+MONGODB_AUTHSOURCE=goprocess_uat
+MONGODB_COLLECTION=processes
+```
+
+Each document in the `processes` collection looks like:
+
+```json
+{ "name": "gonext-local-worker", "command": "gonext-local-worker", "autoStart": true }
+```
+
+- **`name`** — display name
+- **`command`** — the shell command to run
+- **`autoStart`** — when `true`, the process starts automatically on app launch
+
+On launch, the app pulls the list from MongoDB, merges it with any locally‑added
+processes (matched by name), and auto‑starts everything flagged `autoStart`. You
+can also re‑pull at any time with the **⟳ Sync from MongoDB** button.
+
+### Seed the default processes
+
+A helper script inserts two auto‑starting processes into MongoDB:
+
+```bash
+npm run seed
+```
+
+This upserts:
+
+- `gonext-local-worker` → `gonext-local-worker` (autoStart)
+- `mlx_lm.server` → `mlx_lm.server --model ~/mlx-models/Llama-3.2-3B-Instruct-4bit` (autoStart)
+
+Edit `scripts/seed-mongo.js` to change or add defaults.
 
 ## How it works
 

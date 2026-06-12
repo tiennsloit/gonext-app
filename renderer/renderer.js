@@ -14,6 +14,8 @@ const els = {
   detailName: document.getElementById("detailName"),
   detailCommand: document.getElementById("detailCommand"),
   statusBadge: document.getElementById("statusBadge"),
+  autoTag: document.getElementById("autoTag"),
+  sourceTag: document.getElementById("sourceTag"),
   metaPid: document.getElementById("metaPid"),
   metaExit: document.getElementById("metaExit"),
   logs: document.getElementById("logs"),
@@ -26,11 +28,14 @@ const els = {
   clearBtn: document.getElementById("clearBtn"),
   addBtn: document.getElementById("addBtn"),
   emptyAddBtn: document.getElementById("emptyAddBtn"),
+  syncBtn: document.getElementById("syncBtn"),
+  syncStatus: document.getElementById("syncStatus"),
   // modal
   modal: document.getElementById("modal"),
   modalTitle: document.getElementById("modalTitle"),
   fName: document.getElementById("fName"),
   fCommand: document.getElementById("fCommand"),
+  fAutoStart: document.getElementById("fAutoStart"),
   saveBtn: document.getElementById("saveBtn"),
   cancelBtn: document.getElementById("cancelBtn"),
 };
@@ -58,6 +63,7 @@ function renderList() {
       <div class="item-top">
         <span class="dot ${p.status}"></span>
         <span class="item-name"></span>
+        ${p.autoStart ? '<span class="mini-tag" title="Auto-start">⟳</span>' : ""}
       </div>
       <div class="item-cmd"></div>`;
     item.querySelector(".item-name").textContent = p.name;
@@ -86,6 +92,8 @@ function renderDetail() {
   els.detailDot.className = "dot " + p.status;
   els.statusBadge.textContent = p.status;
   els.statusBadge.className = "badge " + p.status;
+  els.autoTag.classList.toggle("hidden", !p.autoStart);
+  els.sourceTag.classList.toggle("hidden", p.source !== "mongo");
   els.metaPid.textContent = p.pid ?? "—";
   els.metaExit.textContent = p.exitCode == null ? "—" : p.exitCode;
 
@@ -136,10 +144,12 @@ function openModal(mode) {
     els.modalTitle.textContent = "Edit process";
     els.fName.value = p.name;
     els.fCommand.value = p.command;
+    els.fAutoStart.checked = !!p.autoStart;
   } else {
     els.modalTitle.textContent = "New process";
     els.fName.value = "";
     els.fCommand.value = "";
+    els.fAutoStart.checked = false;
   }
   els.modal.classList.remove("hidden");
   els.fCommand.focus();
@@ -152,14 +162,15 @@ function closeModal() {
 async function saveModal() {
   const name = els.fName.value.trim();
   const command = els.fCommand.value.trim();
+  const autoStart = els.fAutoStart.checked;
   if (!command) {
     els.fCommand.focus();
     return;
   }
   if (modalMode === "edit") {
-    await api.update(selectedId, name, command);
+    await api.update(selectedId, name, command, autoStart);
   } else {
-    const res = await api.add(name, command);
+    const res = await api.add(name, command, autoStart);
     if (res.ok) selectedId = res.proc.id;
   }
   closeModal();
@@ -167,9 +178,35 @@ async function saveModal() {
   if (selectedId) selectProcess(selectedId);
 }
 
+async function syncMongo() {
+  els.syncBtn.disabled = true;
+  els.syncStatus.textContent = "Syncing…";
+  try {
+    const res = await api.syncMongo();
+    if (res.ok) {
+      els.syncStatus.textContent = `Synced: +${res.added} new, ${res.updated} updated${
+        res.started ? `, ${res.started} auto-started` : ""
+      }`;
+      await refresh();
+      if (selectedId) selectProcess(selectedId);
+    } else {
+      els.syncStatus.textContent = `Sync failed: ${res.error}`;
+    }
+  } catch (err) {
+    els.syncStatus.textContent = `Sync failed: ${err.message}`;
+  } finally {
+    els.syncBtn.disabled = false;
+    setTimeout(() => {
+      if (els.syncStatus.textContent.startsWith("Synced"))
+        els.syncStatus.textContent = "";
+    }, 6000);
+  }
+}
+
 /* ------------------------------ events --------------------------------- */
 els.addBtn.addEventListener("click", () => openModal("add"));
 els.emptyAddBtn.addEventListener("click", () => openModal("add"));
+els.syncBtn.addEventListener("click", syncMongo);
 els.editBtn.addEventListener("click", () => openModal("edit"));
 els.cancelBtn.addEventListener("click", closeModal);
 els.saveBtn.addEventListener("click", saveModal);
@@ -222,6 +259,11 @@ api.onLog(({ id, entry }) => {
   if (id !== selectedId) return;
   appendLogEl(entry);
   scrollLogs();
+});
+
+api.onRefresh(async () => {
+  await refresh();
+  if (selectedId) selectProcess(selectedId);
 });
 
 /* ------------------------------- init ---------------------------------- */

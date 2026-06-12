@@ -22,11 +22,13 @@
         </div>
 
         <button id="addBtn" class="btn btn-primary block">+ New process</button>
+        <button id="syncBtn" class="btn block">⟳ Sync from MongoDB</button>
 
         <div class="list" id="list"></div>
 
         <div class="sidebar-footer">
           <span id="counts">0 processes</span>
+          <span id="syncStatus" class="sync-status"></span>
         </div>
       </aside>
 
@@ -58,6 +60,8 @@
 
           <div class="meta">
             <span class="badge" id="statusBadge">stopped</span>
+            <span class="tag hidden" id="autoTag">⟳ auto-start</span>
+            <span class="tag tag-mongo hidden" id="sourceTag">mongo</span>
             <span class="meta-item">PID: <b id="metaPid">—</b></span>
             <span class="meta-item">Exit: <b id="metaExit">—</b></span>
             <button class="btn btn-ghost btn-sm" id="clearBtn">Clear logs</button>
@@ -88,6 +92,10 @@
             autocomplete="off"
             spellcheck="false"
           />
+        </label>
+        <label class="checkbox-row">
+          <input type="checkbox" id="fAutoStart" />
+          <span>Auto-start when the app launches</span>
         </label>
         <p class="modal-hint">
           Runs in a login shell, so your PATH CLIs (ngrok, etc.) work.

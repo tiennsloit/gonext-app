@@ -115,6 +115,45 @@ body {
   color: var(--muted);
   font-size: 12px;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.sync-status {
+  font-size: 11px;
+  color: var(--accent);
+  min-height: 14px;
+}
+
+.mini-tag {
+  color: var(--accent);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.tag {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  color: var(--accent);
+}
+.tag-mongo {
+  color: var(--green);
+  border-color: var(--green);
+}
+
+.checkbox-row {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  color: var(--text) !important;
+  cursor: pointer;
+}
+.checkbox-row input {
+  width: auto !important;
+  margin: 0 !important;
 }
 
 /* ---------- Status dot ---------- */

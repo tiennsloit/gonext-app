@@ -1,7 +1,9 @@
-const { app, BrowserWindow, ipcMain } = require("electron");
 const path = require("path");
+require("dotenv").config({ path: path.join(__dirname, ".env") });
+const { app, BrowserWindow, ipcMain } = require("electron");
 const fs = require("fs");
 const { spawn } = require("child_process");
+const mongo = require("./mongo");
 
 const STORE_PATH = () => path.join(app.getPath("userData"), "processes.json");
 const MAX_LOG_LINES = 500;
@@ -57,6 +59,9 @@ function saveDefinitions() {
     id: p.id,
     name: p.name,
     command: p.command,
+    autoStart: !!p.autoStart,
+    source: p.source || "local",
+    mongoId: p.mongoId,
   }));
   try {
     fs.writeFileSync(STORE_PATH(), JSON.stringify(defs, null, 2), "utf8");
@@ -71,6 +76,9 @@ function hydrate() {
       id: def.id,
       name: def.name,
       command: def.command,
+      autoStart: !!def.autoStart,
+      source: def.source || "local",
+      mongoId: def.mongoId,
       status: "stopped",
       child: null,
       pid: null,
@@ -91,6 +99,8 @@ function toClient(p) {
     id: p.id,
     name: p.name,
     command: p.command,
+    autoStart: !!p.autoStart,
+    source: p.source || "local",
     status: p.status,
     pid: p.pid,
     exitCode: p.exitCode,
@@ -216,11 +226,78 @@ function stopAll() {
   }
 }
 
+/** Start every process flagged autoStart that isn't already running. */
+function autoStartAll() {
+  let started = 0;
+  for (const p of procs.values()) {
+    if (p.autoStart && !p.child) {
+      const r = startProcess(p);
+      if (r.ok) started++;
+    }
+  }
+  return started;
+}
+
+/* ------------------------------- MongoDB -------------------------------- */
+
+/**
+ * Pull process definitions from MongoDB and merge them into the registry.
+ * Matching is done by name: existing entries are updated in place, new ones
+ * are added. Returns a summary plus the refreshed client list.
+ */
+async function syncFromMongo() {
+  const docs = await mongo.fetchProcesses();
+  let added = 0;
+  let updated = 0;
+  for (const d of docs) {
+    if (!d.name && !d.command) continue;
+    const existing = [...procs.values()].find(
+      (p) => (d.mongoId && p.mongoId === d.mongoId) || p.name === d.name
+    );
+    if (existing) {
+      if (!existing.child && d.command) existing.command = d.command;
+      existing.name = d.name || existing.name;
+      existing.autoStart = !!d.autoStart;
+      existing.source = "mongo";
+      existing.mongoId = d.mongoId || existing.mongoId;
+      updated++;
+    } else {
+      const id = makeId();
+      procs.set(id, {
+        id,
+        name: d.name || d.command,
+        command: d.command,
+        autoStart: !!d.autoStart,
+        source: "mongo",
+        mongoId: d.mongoId,
+        status: "stopped",
+        child: null,
+        pid: null,
+        exitCode: null,
+        logs: [],
+      });
+      added++;
+    }
+  }
+  saveDefinitions();
+  return { added, updated, total: docs.length };
+}
+
 /* ------------------------------- IPC ------------------------------------ */
+
+ipcMain.handle("mongo:sync", async () => {
+  try {
+    const summary = await syncFromMongo();
+    const started = autoStartAll();
+    return { ok: true, ...summary, started, list: listClient() };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+});
 
 ipcMain.handle("proc:list", () => listClient());
 
-ipcMain.handle("proc:add", (_e, { name, command }) => {
+ipcMain.handle("proc:add", (_e, { name, command, autoStart }) => {
   const cmd = (command || "").trim();
   if (!cmd) return { ok: false, error: "Command is required" };
   const id = makeId();
@@ -228,6 +305,9 @@ ipcMain.handle("proc:add", (_e, { name, command }) => {
     id,
     name: (name || "").trim() || cmd,
     command: cmd,
+    autoStart: !!autoStart,
+    source: "local",
+    mongoId: undefined,
     status: "stopped",
     child: null,
     pid: null,
@@ -239,7 +319,7 @@ ipcMain.handle("proc:add", (_e, { name, command }) => {
   return { ok: true, proc: toClient(p) };
 });
 
-ipcMain.handle("proc:update", (_e, { id, name, command }) => {
+ipcMain.handle("proc:update", (_e, { id, name, command, autoStart }) => {
   const p = procs.get(id);
   if (!p) return { ok: false, error: "Not found" };
   if (p.child) return { ok: false, error: "Stop the process before editing" };
@@ -248,6 +328,7 @@ ipcMain.handle("proc:update", (_e, { id, name, command }) => {
     p.command = command.trim();
     if (!name) p.name = p.name || p.command;
   }
+  if (typeof autoStart === "boolean") p.autoStart = autoStart;
   saveDefinitions();
   return { ok: true, proc: toClient(p) };
 });
@@ -310,6 +391,25 @@ ipcMain.handle("proc:clearLogs", (_e, { id }) => {
 app.whenReady().then(() => {
   hydrate();
   createWindow();
+
+  // Best-effort: pull the list from MongoDB, then auto-start flagged processes.
+  // Auto-start runs even if Mongo is unreachable (using locally-saved defs).
+  (async () => {
+    try {
+      const summary = await syncFromMongo();
+      console.log(
+        `MongoDB sync: +${summary.added} added, ${summary.updated} updated`
+      );
+    } catch (err) {
+      console.warn("MongoDB sync skipped:", err.message);
+    } finally {
+      const started = autoStartAll();
+      if (started) console.log(`Auto-started ${started} process(es)`);
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send("proc:refresh");
+      }
+    }
+  })();
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
