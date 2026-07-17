@@ -87,4 +87,19 @@ async function seedProcesses(items) {
   });
 }
 
-module.exports = { fetchProcesses, seedProcesses, buildUri, cfg };
+/** Delete a single process document by its Mongo _id. */
+async function deleteProcess(mongoId) {
+  return withDb(async (db, c) => {
+    const { ObjectId } = require("mongodb");
+    let _id;
+    try {
+      _id = new ObjectId(String(mongoId));
+    } catch (_) {
+      return { deleted: 0 };
+    }
+    const res = await db.collection(c.collection).deleteOne({ _id });
+    return { deleted: res.deletedCount };
+  });
+}
+
+module.exports = { fetchProcesses, seedProcesses, deleteProcess, buildUri, cfg };

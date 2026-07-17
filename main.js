@@ -414,9 +414,21 @@ ipcMain.handle("proc:update", (_e, { id, name, command, autoStart }) => {
   return { ok: true, proc: toClient(p) };
 });
 
-ipcMain.handle("proc:remove", (_e, { id }) => {
+ipcMain.handle("proc:remove", async (_e, { id }) => {
   const p = procs.get(id);
   if (!p) return { ok: false, error: "Not found" };
+  // If this process came from MongoDB, delete it there first. Otherwise the
+  // next syncFromMongo() on startup would re-add it from the source of truth.
+  if (p.mongoId) {
+    try {
+      await mongo.deleteProcess(p.mongoId);
+    } catch (err) {
+      return {
+        ok: false,
+        error: `Could not delete from MongoDB (${err.message}). Not removed, or it will reappear on next launch.`,
+      };
+    }
+  }
   if (p.child) stopProcess(p);
   procs.delete(id);
   saveDefinitions();
