@@ -138,9 +138,18 @@ Output lands in the `dist/` folder, e.g.:
   ad-hoc hook steps aside automatically once a real `identity` is configured.
 - **App version** comes from the `version` field in `package.json` — bump it for
   each release.
-- **App icon:** the default Electron icon is used. To customize, add an
-  `icon.icns` (mac) / `icon.png` (linux) and reference it under `build.mac.icon`
-  / `build.linux.icon`.
+- **App icon:** `build/icon.svg` is the source of truth. Edit it, then run:
+  ```bash
+  npm run icons
+  ```
+  which rasterises it to `build/icon.png` (Linux) and `build/icon.icns` (macOS,
+  full 16→1024 iconset). There's no SVG rasteriser in the dependency tree, so the
+  script renders through headless Chrome and packs the result with the stock
+  `sips` + `iconutil`. The matching flat mark is inlined in `renderer/index.html`
+  as the sidebar logo — update both together so they stay in sync.
+
+  macOS aggressively caches icons; if Finder or the Dock still shows the old one
+  after a rebuild, `touch /Applications/GoTerminal.app && killall Dock`.
 
 ### Publishing to GitHub Releases (optional)
 

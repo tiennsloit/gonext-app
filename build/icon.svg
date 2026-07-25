@@ -1,0 +1,75 @@
+<!--
+  GoTerminal app icon — source of truth.
+  Regenerate icon.png / icon.icns with: npm run icons
+  Layout follows Apple's macOS template: 824x824 body centred in a 1024x1024
+  canvas, leaving the 100px margin the Dock expects for the shadow.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="body" gradientUnits="userSpaceOnUse" x1="224" y1="100" x2="800" y2="924">
+      <stop offset="0" stop-color="#26304a"/>
+      <stop offset="0.45" stop-color="#121724"/>
+      <stop offset="1" stop-color="#06080e"/>
+    </linearGradient>
+    <linearGradient id="rim" gradientUnits="userSpaceOnUse" x1="265" y1="100" x2="759" y2="924">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.34"/>
+      <stop offset="0.4" stop-color="#ffffff" stop-opacity="0.06"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0.02"/>
+    </linearGradient>
+    <linearGradient id="blue" gradientUnits="userSpaceOnUse" x1="330" y1="374" x2="680" y2="662">
+      <stop offset="0" stop-color="#7db0ff"/>
+      <stop offset="1" stop-color="#39dcff"/>
+    </linearGradient>
+    <linearGradient id="ring" gradientUnits="userSpaceOnUse" x1="512" y1="226" x2="762" y2="662">
+      <stop offset="0" stop-color="#39dcff"/>
+      <stop offset="0.5" stop-color="#4f8cff"/>
+      <stop offset="1" stop-color="#36c275"/>
+    </linearGradient>
+    <radialGradient id="halo" gradientUnits="userSpaceOnUse" cx="512" cy="512" r="420">
+      <stop offset="0" stop-color="#4f8cff" stop-opacity="0.42"/>
+      <stop offset="0.62" stop-color="#4f8cff" stop-opacity="0.10"/>
+      <stop offset="1" stop-color="#4f8cff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="spec" gradientUnits="userSpaceOnUse" x1="512" y1="100" x2="512" y2="560">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.13"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="22" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="26" stdDeviation="30" flood-color="#000000" flood-opacity="0.55"/>
+    </filter>
+    <clipPath id="clipBody">
+      <rect x="100" y="100" width="824" height="824" rx="185" ry="185"/>
+    </clipPath>
+  </defs>
+
+  <!-- squircle body + soft contact shadow -->
+  <g filter="url(#shadow)">
+    <rect x="100" y="100" width="824" height="824" rx="185" ry="185" fill="url(#body)"/>
+  </g>
+
+  <!-- accent bloom behind the mark, plus a glass highlight across the top -->
+  <g clip-path="url(#clipBody)">
+    <circle cx="512" cy="512" r="420" fill="url(#halo)"/>
+    <path d="M100 100 H924 V430 Q512 560 100 430 Z" fill="url(#spec)"/>
+  </g>
+  <rect x="101.5" y="101.5" width="821" height="821" rx="183.5" ry="183.5"
+        fill="none" stroke="url(#rim)" stroke-width="3"/>
+
+  <!-- activity ring: the swept arc + green head read as "processes running" -->
+  <g filter="url(#glow)">
+    <circle cx="512" cy="512" r="286" fill="none" stroke="#4f8cff" stroke-opacity="0.16" stroke-width="26"/>
+    <path d="M512 226 A286 286 0 0 1 762 662" fill="none" stroke="url(#ring)"
+          stroke-width="26" stroke-linecap="round"/>
+    <circle cx="762" cy="662" r="30" fill="#36c275"/>
+  </g>
+
+  <!-- shell prompt: chevron + cursor -->
+  <g fill="none" stroke="url(#blue)" stroke-width="60" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)">
+    <path d="M360 404 L524 512 L360 620"/>
+    <path d="M566 632 L650 632"/>
+  </g>
+</svg>

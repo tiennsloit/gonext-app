@@ -18,7 +18,28 @@
     <div class="app">
       <aside class="sidebar">
         <div class="brand">
-          <span class="logo">▣</span>
+          <!-- flat version of the app icon (build/icon.svg), no squircle body -->
+          <svg class="logo" viewBox="0 0 1024 1024" aria-hidden="true">
+            <defs>
+              <linearGradient id="lgRing" gradientUnits="userSpaceOnUse" x1="512" y1="226" x2="762" y2="662">
+                <stop offset="0" stop-color="#39dcff" />
+                <stop offset="0.5" stop-color="#4f8cff" />
+                <stop offset="1" stop-color="#36c275" />
+              </linearGradient>
+              <linearGradient id="lgMark" gradientUnits="userSpaceOnUse" x1="330" y1="374" x2="680" y2="662">
+                <stop offset="0" stop-color="#7db0ff" />
+                <stop offset="1" stop-color="#39dcff" />
+              </linearGradient>
+            </defs>
+            <circle cx="512" cy="512" r="286" fill="none" stroke="#4f8cff" stroke-opacity="0.22" stroke-width="42" />
+            <path d="M512 226 A286 286 0 0 1 762 662" fill="none" stroke="url(#lgRing)" stroke-width="42" stroke-linecap="round" />
+            <circle cx="762" cy="662" r="46" fill="#36c275" />
+            <g fill="none" stroke="url(#lgMark)" stroke-width="84" stroke-linecap="round" stroke-linejoin="round"
+               transform="translate(512 512) scale(0.86) translate(-512 -512)">
+              <path d="M360 404 L524 512 L360 620" />
+              <path d="M566 632 L650 632" />
+            </g>
+          </svg>
           <div>
             <h1>GoTerminal</h1>
             <p>Process tracker</p>

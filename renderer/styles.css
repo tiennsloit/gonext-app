@@ -85,8 +85,10 @@ body {
   gap: 12px;
 }
 .brand .logo {
-  font-size: 26px;
-  color: var(--accent);
+  width: 30px;
+  height: 30px;
+  flex: none;
+  display: block;
 }
 .brand h1 {
   font-size: 16px;

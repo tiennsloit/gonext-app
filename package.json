@@ -7,6 +7,7 @@
     "start": "env -u ELECTRON_RUN_AS_NODE electron .",
     "dev": "env -u ELECTRON_RUN_AS_NODE electron . --inspect",
     "seed": "node scripts/seed-mongo.js",
+    "icons": "bash scripts/make-icons.sh",
     "dist": "electron-builder",
     "dist:mac": "electron-builder --mac",
     "dist:linux": "electron-builder --linux"
@@ -36,6 +37,7 @@
     "afterPack": "scripts/adhoc-sign.js",
     "mac": {
       "category": "public.app-category.developer-tools",
+      "icon": "build/icon.icns",
       "target": [
         "dmg",
         "zip"
@@ -43,6 +45,7 @@
     },
     "linux": {
       "category": "Utility",
+      "icon": "build/icon.png",
       "target": [
         "AppImage",
         "deb"
