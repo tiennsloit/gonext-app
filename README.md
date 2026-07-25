@@ -115,13 +115,27 @@ Output lands in the `dist/` folder, e.g.:
 
 - **Build on the target OS.** Build the macOS app on a Mac and the Linux app on
   Linux (or via CI). Cross‑compiling is possible but fiddly.
-- **macOS Gatekeeper:** the app is **unsigned** (no Apple Developer cert), so the
-  first time you open it macOS may say it's from an unidentified developer.
-  Right‑click the app → **Open**, or run:
+- **macOS Gatekeeper:** the app has no Apple Developer ID, so `scripts/adhoc-sign.js`
+  (wired up as electron-builder's `afterPack` hook) applies an **ad-hoc signature**
+  to the bundle. This is not optional on Apple Silicon: without it the bundle has no
+  sealed resources and macOS 15+ hard‑blocks it with *"GoTerminal has been blocked
+  because it may reduce your privacy and lower the security of your Mac"* — a dialog
+  that only offers **Move to Trash**, with no way to open it anyway.
+
+  Ad-hoc signing downgrades that to the ordinary unidentified‑developer prompt.
+  On first open, users still need **System Settings → Privacy & Security → Open
+  Anyway** (on macOS 15+ the old right‑click → *Open* trick no longer works), or:
   ```bash
   xattr -dr com.apple.quarantine "/Applications/GoTerminal.app"
   ```
-  To remove this entirely you'd need an Apple Developer ID and notarization.
+  If a copy already on disk shows the hard block, re‑sign it in place:
+  ```bash
+  xattr -cr "/Applications/GoTerminal.app"
+  codesign --force --deep --sign - "/Applications/GoTerminal.app"
+  ```
+  To remove the prompt entirely you need an Apple Developer ID ($99/yr) plus
+  notarization — set `CSC_LINK`/`CSC_KEY_PASSWORD` and `build.mac.notarize`, and the
+  ad-hoc hook steps aside automatically once a real `identity` is configured.
 - **App version** comes from the `version` field in `package.json` — bump it for
   each release.
 - **App icon:** the default Electron icon is used. To customize, add an
