@@ -87,6 +87,27 @@ async function seedProcesses(items) {
   });
 }
 
+/** Update a single process document by its Mongo _id. */
+async function updateProcess(mongoId, fields) {
+  return withDb(async (db, c) => {
+    const { ObjectId } = require("mongodb");
+    let _id;
+    try {
+      _id = new ObjectId(String(mongoId));
+    } catch (_) {
+      return { matched: 0, modified: 0 };
+    }
+    const $set = {};
+    if (typeof fields.name === "string") $set.name = fields.name;
+    if (typeof fields.command === "string") $set.command = fields.command;
+    if (typeof fields.autoStart === "boolean") $set.autoStart = fields.autoStart;
+    if (!Object.keys($set).length) return { matched: 0, modified: 0 };
+    $set.updatedAt = new Date();
+    const res = await db.collection(c.collection).updateOne({ _id }, { $set });
+    return { matched: res.matchedCount, modified: res.modifiedCount };
+  });
+}
+
 /** Delete a single process document by its Mongo _id. */
 async function deleteProcess(mongoId) {
   return withDb(async (db, c) => {
@@ -102,4 +123,11 @@ async function deleteProcess(mongoId) {
   });
 }
 
-module.exports = { fetchProcesses, seedProcesses, deleteProcess, buildUri, cfg };
+module.exports = {
+  fetchProcesses,
+  seedProcesses,
+  updateProcess,
+  deleteProcess,
+  buildUri,
+  cfg,
+};

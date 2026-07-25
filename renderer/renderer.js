@@ -171,11 +171,21 @@ async function saveModal() {
     return;
   }
   if (modalMode === "edit") {
-    await api.update(selectedId, name, command, autoStart);
+    const res = await api.update(selectedId, name, command, autoStart);
+    if (!res.ok) {
+      // Keep the modal open so the edit isn't lost.
+      showBanner(res.error);
+      return;
+    }
   } else {
     const res = await api.add(name, command, autoStart);
-    if (res.ok) selectedId = res.proc.id;
+    if (!res.ok) {
+      showBanner(res.error);
+      return;
+    }
+    selectedId = res.proc.id;
   }
+  hideBanner();
   closeModal();
   await refresh();
   if (selectedId) selectProcess(selectedId);
@@ -267,7 +277,11 @@ els.deleteBtn.addEventListener("click", async () => {
   if (!selectedId) return;
   const p = getProc(selectedId);
   if (!confirm(`Delete "${p?.name}"? This stops it if running.`)) return;
-  await api.remove(selectedId);
+  const res = await api.remove(selectedId);
+  if (!res.ok) {
+    showBanner(res.error);
+    return;
+  }
   selectedId = null;
   await refresh();
 });

@@ -400,16 +400,35 @@ ipcMain.handle("proc:add", (_e, { name, command, autoStart }) => {
   return { ok: true, proc: toClient(p) };
 });
 
-ipcMain.handle("proc:update", (_e, { id, name, command, autoStart }) => {
+ipcMain.handle("proc:update", async (_e, { id, name, command, autoStart }) => {
   const p = procs.get(id);
   if (!p) return { ok: false, error: "Not found" };
   if (p.child) return { ok: false, error: "Stop the process before editing" };
-  if (typeof name === "string") p.name = name.trim() || p.command;
-  if (typeof command === "string" && command.trim()) {
-    p.command = command.trim();
-    if (!name) p.name = p.name || p.command;
+
+  // Resolve the new values first so we can push them to MongoDB before
+  // touching local state.
+  const next = { name: p.name, command: p.command, autoStart: p.autoStart };
+  if (typeof command === "string" && command.trim()) next.command = command.trim();
+  if (typeof name === "string") next.name = name.trim() || next.command;
+  if (typeof autoStart === "boolean") next.autoStart = autoStart;
+
+  // Processes that came from MongoDB must be written back: syncFromMongo() on
+  // the next launch treats Mongo as the source of truth and would otherwise
+  // overwrite the edit with the old command.
+  if (p.mongoId) {
+    try {
+      await mongo.updateProcess(p.mongoId, next);
+    } catch (err) {
+      return {
+        ok: false,
+        error: `Could not save to MongoDB (${err.message}). Not updated, or the change would be lost on next launch.`,
+      };
+    }
   }
-  if (typeof autoStart === "boolean") p.autoStart = autoStart;
+
+  p.name = next.name;
+  p.command = next.command;
+  p.autoStart = next.autoStart;
   saveDefinitions();
   return { ok: true, proc: toClient(p) };
 });
